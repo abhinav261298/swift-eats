@@ -1,0 +1,1127 @@
+openapi: 3.0.3
+info:
+  title: SwiftEats Food Delivery Platform API
+  description: |
+    Comprehensive API specification for the SwiftEats real-time food delivery platform.
+    
+    ## Overview
+    SwiftEats is a scalable, resilient, and high-performance microservices-based food delivery platform.
+    
+    ## Key Features
+    - Real-time GPS tracking for drivers
+    - High-performance order processing (500 orders/minute)
+    - Real-time analytics (2,000 GPS events/second)
+    - Multi-layer caching for sub-200ms response times
+    
+    ## Services
+    - Auth Service (Port: 3001) - Authentication and authorization
+    - User Service (Port: 3002) - User management
+    - Restaurant Service (Port: 3003) - Restaurant and menu management
+    - Order Service (Port: 3004) - Order processing
+    - Delivery Service (Port: 3005) - Delivery tracking
+    - Notification Service (Port: 3006) - Notifications
+    - Payment Service (Port: 3007) - Payment processing
+    - Analytics Service (Port: 3008) - Real-time analytics
+    
+    ## Authentication
+    All API endpoints require JWT authentication unless marked as public.
+    Include the JWT token in the Authorization header: `Authorization: Bearer <token>`
+    
+    ## Rate Limiting
+    - Standard endpoints: 1000 requests per minute
+    - Order endpoints: 100 requests per minute
+    - Analytics endpoints: 5000 requests per minute
+    
+    ## Health Checks
+    Each service provides a minimal health endpoint:
+    - `/api/v1/health` - returns `{ status: 'ok' }`
+  version: 1.0.0
+  contact:
+    name: SwiftEats Development Team
+    email: dev@swifteats.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3001/api/v1
+    description: Auth Service (Development)
+  - url: http://localhost:3002/api/v1
+    description: User Service (Development)
+  - url: http://localhost:3003/api/v1
+    description: Restaurant Service (Development)
+  - url: http://localhost:3004/api/v1
+    description: Order Service (Development)
+  - url: http://localhost:3005/api/v1
+    description: Delivery Service (Development)
+  - url: http://localhost:3006/api/v1
+    description: Notification Service (Development)
+  - url: http://localhost:3007/api/v1
+    description: Payment Service (Development)
+  - url: http://localhost:3008/api/v1
+    description: Analytics Service (Development)
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+  schemas:
+    # Common schemas
+    Error:
+      type: object
+      properties:
+        statusCode:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Bad Request"
+        error:
+          type: string
+          example: "Validation failed"
+        timestamp:
+          type: string
+          format: date-time
+        path:
+          type: string
+          example: "/api/v1/orders"
+
+    PaginatedResponse:
+      type: object
+      properties:
+        data:
+          type: array
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+            limit:
+              type: integer
+            total:
+              type: integer
+            totalPages:
+              type: integer
+
+    # Auth Service schemas
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          minLength: 6
+          example: "password123"
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        user:
+          $ref: '#/components/schemas/User'
+
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - firstName
+        - lastName
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        firstName:
+          type: string
+          minLength: 2
+        lastName:
+          type: string
+          minLength: 2
+        phone:
+          type: string
+        address:
+          type: string
+
+    # User Service schemas
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+
+    # Restaurant Service schemas
+    Restaurant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        address:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        cuisineType:
+          type: string
+        rating:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 5
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MenuItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        restaurantId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+          minimum: 0
+        category:
+          type: string
+        isAvailable:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    # Order Service schemas
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        restaurantId:
+          type: string
+          format: uuid
+        totalAmount:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [pending, confirmed, preparing, ready, picked_up, delivered, cancelled]
+        deliveryAddress:
+          type: string
+        deliveryInstructions:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        menuItemId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+        unitPrice:
+          type: number
+          format: float
+        totalPrice:
+          type: number
+          format: float
+        specialInstructions:
+          type: string
+
+    CreateOrderRequest:
+      type: object
+      required:
+        - restaurantId
+        - items
+        - deliveryAddress
+      properties:
+        restaurantId:
+          type: string
+          format: uuid
+        items:
+          type: array
+          items:
+            type: object
+            required:
+              - menuItemId
+              - quantity
+            properties:
+              menuItemId:
+                type: string
+                format: uuid
+              quantity:
+                type: integer
+                minimum: 1
+              specialInstructions:
+                type: string
+        deliveryAddress:
+          type: string
+        deliveryInstructions:
+          type: string
+
+    # Delivery Service schemas
+    Delivery:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        deliveryPersonId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, assigned, picked_up, in_transit, delivered]
+        pickupTime:
+          type: string
+          format: date-time
+        deliveryTime:
+          type: string
+          format: date-time
+        estimatedDeliveryTime:
+          type: string
+          format: date-time
+        actualDeliveryTime:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DriverLocation:
+      type: object
+      properties:
+        driverId:
+          type: string
+          format: uuid
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        speed:
+          type: number
+          format: float
+        heading:
+          type: number
+          format: float
+        status:
+          type: string
+          enum: [available, busy, offline, delivering]
+        timestamp:
+          type: string
+          format: date-time
+        accuracy:
+          type: number
+          format: float
+        batteryLevel:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+
+    # Payment Service schemas
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orderId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: float
+        paymentMethod:
+          type: string
+          enum: [credit_card, debit_card, digital_wallet, cash]
+        status:
+          type: string
+          enum: [pending, processing, completed, failed, refunded]
+        transactionId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreatePaymentRequest:
+      type: object
+      required:
+        - orderId
+        - amount
+        - paymentMethod
+      properties:
+        orderId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: float
+        paymentMethod:
+          type: string
+          enum: [credit_card, debit_card, digital_wallet, cash]
+        paymentDetails:
+          type: object
+
+    # Notification Service schemas
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+          enum: [order_update, delivery_update, payment_update, general]
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    SendNotificationRequest:
+      type: object
+      required:
+        - userId
+        - title
+        - message
+        - type
+      properties:
+        userId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+          enum: [order_update, delivery_update, payment_update, general]
+
+    # Analytics Service schemas
+    AnalyticsEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+          enum: [order_created, order_delivered, driver_location, user_login]
+        userId:
+          type: string
+          format: uuid
+        data:
+          type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    AnalyticsMetrics:
+      type: object
+      properties:
+        totalOrders:
+          type: integer
+        totalRevenue:
+          type: number
+          format: float
+        averageOrderValue:
+          type: number
+          format: float
+        activeDrivers:
+          type: integer
+        ordersPerHour:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+
+paths:
+  # Health Check Endpoints
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Comprehensive health check
+      description: Returns the health status of the service including database, memory, disk, and Redis connectivity
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  details:
+                    type: object
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health/ready:
+    get:
+      tags:
+        - Health
+      summary: Readiness check
+      description: Returns the readiness status of the service (database and Redis connectivity)
+      responses:
+        '200':
+          description: Service is ready
+        '503':
+          description: Service is not ready
+
+  /health/live:
+    get:
+      tags:
+        - Health
+      summary: Liveness check
+      description: Returns the liveness status of the service (memory usage)
+      responses:
+        '200':
+          description: Service is alive
+        '503':
+          description: Service is not alive
+
+  # Auth Service Endpoints
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: User login
+      description: Authenticate user and return JWT tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: User registration
+      description: Register a new user account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Refresh the access token using a refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+        '401':
+          description: Invalid refresh token
+
+  # User Service Endpoints
+  /users/profile:
+    get:
+      tags:
+        - Users
+      summary: Get user profile
+      description: Retrieve the current user's profile information
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Unauthorized
+
+  /users/profile:
+    put:
+      tags:
+        - Users
+      summary: Update user profile
+      description: Update the current user's profile information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error
+
+  # Restaurant Service Endpoints
+  /restaurants:
+    get:
+      tags:
+        - Restaurants
+      summary: List restaurants
+      description: Retrieve a list of restaurants with optional filtering
+      parameters:
+        - name: cuisineType
+          in: query
+          schema:
+            type: string
+          description: Filter by cuisine type
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+          description: Number of items per page
+      responses:
+        '200':
+          description: Restaurants retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Restaurant'
+
+  /restaurants/{id}:
+    get:
+      tags:
+        - Restaurants
+      summary: Get restaurant details
+      description: Retrieve detailed information about a specific restaurant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Restaurant details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Restaurant'
+        '404':
+          description: Restaurant not found
+
+  /restaurants/{id}/menu:
+    get:
+      tags:
+        - Restaurants
+      summary: Get restaurant menu
+      description: Retrieve the menu items for a specific restaurant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by menu category
+      responses:
+        '200':
+          description: Menu retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MenuItem'
+
+  # Order Service Endpoints
+  /orders:
+    post:
+      tags:
+        - Orders
+      summary: Create order
+      description: Create a new order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '400':
+          description: Validation error
+
+  /orders:
+    get:
+      tags:
+        - Orders
+      summary: List user orders
+      description: Retrieve orders for the current user
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, preparing, ready, picked_up, delivered, cancelled]
+          description: Filter by order status
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Order'
+
+  /orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Get order details
+      description: Retrieve detailed information about a specific order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Order details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description: Order not found
+
+  # Delivery Service Endpoints
+  /deliveries/{orderId}:
+    get:
+      tags:
+        - Deliveries
+      summary: Get delivery status
+      description: Retrieve delivery information for a specific order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Delivery information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Delivery'
+        '404':
+          description: Delivery not found
+
+  /deliveries/drivers/{driverId}/location:
+    get:
+      tags:
+        - Deliveries
+      summary: Get driver location
+      description: Retrieve real-time location of a specific driver
+      parameters:
+        - name: driverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Driver location retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DriverLocation'
+        '404':
+          description: Driver not found
+
+  # Payment Service Endpoints
+  /payments:
+    post:
+      tags:
+        - Payments
+      summary: Process payment
+      description: Process payment for an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Payment processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '400':
+          description: Payment processing failed
+
+  /payments/{id}:
+    get:
+      tags:
+        - Payments
+      summary: Get payment details
+      description: Retrieve payment information
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Payment details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+        '404':
+          description: Payment not found
+
+  # Notification Service Endpoints
+  /notifications:
+    get:
+      tags:
+        - Notifications
+      summary: List notifications
+      description: Retrieve notifications for the current user
+      parameters:
+        - name: isRead
+          in: query
+          schema:
+            type: boolean
+          description: Filter by read status
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [order_update, delivery_update, payment_update, general]
+          description: Filter by notification type
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Notification'
+
+  /notifications/{id}/read:
+    patch:
+      tags:
+        - Notifications
+      summary: Mark notification as read
+      description: Mark a notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification marked as read
+        '404':
+          description: Notification not found
+
+  # Analytics Service Endpoints
+  /analytics/events:
+    post:
+      tags:
+        - Analytics
+      summary: Track analytics event
+      description: Track an analytics event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyticsEvent'
+      responses:
+        '201':
+          description: Event tracked successfully
+        '400':
+          description: Invalid event data
+
+  /analytics/metrics:
+    get:
+      tags:
+        - Analytics
+      summary: Get analytics metrics
+      description: Retrieve real-time analytics metrics
+      parameters:
+        - name: timeRange
+          in: query
+          schema:
+            type: string
+            enum: [1h, 24h, 7d, 30d]
+            default: 24h
+          description: Time range for metrics
+      responses:
+        '200':
+          description: Metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsMetrics'
+
+  /analytics/drivers/locations:
+    get:
+      tags:
+        - Analytics
+      summary: Get all driver locations
+      description: Retrieve real-time locations of all active drivers
+      responses:
+        '200':
+          description: Driver locations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DriverLocation'
+
+tags:
+  - name: Health
+    description: Health check endpoints
+  - name: Authentication
+    description: Authentication and authorization endpoints
+  - name: Users
+    description: User management endpoints
+  - name: Restaurants
+    description: Restaurant and menu management endpoints
+  - name: Orders
+    description: Order processing endpoints
+  - name: Deliveries
+    description: Delivery tracking endpoints
+  - name: Payments
+    description: Payment processing endpoints
+  - name: Notifications
+    description: Notification management endpoints
+  - name: Analytics
+    description: Analytics and real-time data endpoints

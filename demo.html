@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>SwiftEats Demo</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 20px; }
+      .row { display: flex; gap: 16px; }
+      .col { flex: 1; min-width: 280px; }
+      pre { background: #111; color: #eee; padding: 12px; border-radius: 8px; max-height: 300px; overflow: auto; }
+      button { padding: 8px 12px; }
+      input, select { padding: 6px; width: 100%; box-sizing: border-box; }
+      header { margin-bottom: 16px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h2>SwiftEats Realtime Demo</h2>
+      <p>
+        Start services: notification-service (3006), delivery-service (3005), restaurant-service (3003), order-service (3004).<br/>
+        Then run simulator: <code>npm run simulate:drivers</code>.
+      </p>
+    </header>
+
+    <div class="row">
+      <div class="col">
+        <h3>Browse Restaurants</h3>
+        <button id="btnList">Load Restaurants</button>
+        <ul id="restaurants"></ul>
+        <h4>Place Order</h4>
+        <label>Restaurant ID</label>
+        <input id="restaurantId" placeholder="rest1" />
+        <label>Item</label>
+        <select id="item">
+          <option value='{"itemId":"biryani","name":"Chicken Biryani","quantity":1,"price":250}'>Chicken Biryani</option>
+          <option value='{"itemId":"dal","name":"Dal Tadka","quantity":1,"price":150}'>Dal Tadka</option>
+        </select>
+        <button id="btnOrder">Place Order</button>
+        <pre id="orderOut"></pre>
+      </div>
+      <div class="col">
+        <h3>Realtime Driver Locations</h3>
+        <button id="btnConnectWS">Connect WebSocket</button>
+        <pre id="wsLog"></pre>
+      </div>
+    </div>
+
+    <script>
+      const restaurantsEl = document.getElementById('restaurants');
+      const orderOut = document.getElementById('orderOut');
+      const wsLog = document.getElementById('wsLog');
+
+      document.getElementById('btnList').onclick = async () => {
+        restaurantsEl.innerHTML = 'Loading...';
+        try {
+          const res = await fetch('http://localhost:3003/api/v1/restaurants');
+          const data = await res.json();
+          restaurantsEl.innerHTML = '';
+          data.forEach(r => {
+            const li = document.createElement('li');
+            li.textContent = `${r.id}: ${r.name} (items: ${r.menus?.length ?? 0})`;
+            restaurantsEl.appendChild(li);
+          });
+        } catch (e) {
+          restaurantsEl.innerHTML = 'Failed to load restaurants';
+        }
+      };
+
+      document.getElementById('btnOrder').onclick = async () => {
+        orderOut.textContent = 'Placing order...';
+        const restaurantId = document.getElementById('restaurantId').value || 'rest1';
+        const item = JSON.parse(document.getElementById('item').value);
+        try {
+          const res = await fetch('http://localhost:3004/api/v1/orders', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ restaurantId, items: [item] })
+          });
+          const data = await res.json();
+          orderOut.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+          orderOut.textContent = 'Failed to place order';
+        }
+      };
+
+      document.getElementById('btnConnectWS').onclick = () => {
+        try {
+          const ws = new WebSocket('ws://localhost:3006/notifications');
+          ws.onopen = () => wsLog.textContent += 'WS connected\n';
+          ws.onmessage = (ev) => {
+            try {
+              const parsed = JSON.parse(ev.data);
+              wsLog.textContent += JSON.stringify(parsed) + '\n';
+            } catch {
+              wsLog.textContent += ev.data + '\n';
+            }
+          };
+          ws.onerror = (e) => wsLog.textContent += 'WS error\n';
+          ws.onclose = () => wsLog.textContent += 'WS closed\n';
+        } catch (e) {
+          wsLog.textContent += 'Failed to connect WS\n';
+        }
+      };
+    </script>
+  </body>
+  </html>
+
+

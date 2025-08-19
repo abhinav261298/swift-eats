@@ -1,0 +1,35 @@
+{
+  "name": "@food-delivery/shared",
+  "version": "1.0.0",
+  "description": "Shared utilities and interfaces for Food Delivery Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "class-validator": "^0.14.0",
+    "class-transformer": "^0.5.1",
+    "uuid": "^9.0.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "joi": "^17.11.0"
+  },
+  "devDependencies": {
+    "@types/uuid": "^9.0.0",
+    "@types/bcryptjs": "^2.4.0",
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "keywords": [
+    "shared",
+    "utilities",
+    "interfaces",
+    "food-delivery"
+  ],
+  "author": "Food Delivery Team",
+  "license": "MIT"
+}
